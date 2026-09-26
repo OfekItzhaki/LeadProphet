@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="error-page">
+  <span class="eyebrow">{{ status_code }}</span>
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  <a class="button" href="{{ '/daily' if current_user else '/' }}">Return {{ 'to Daily' if current_user else 'home' }}</a>
+</section>
+{% endblock %}

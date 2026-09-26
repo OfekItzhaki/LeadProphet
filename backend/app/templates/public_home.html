@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="marketing-hero">
+  <div class="hero-copy">
+    <span class="eyebrow">ICP-driven outbound</span>
+    <h1>{{ content.home_hero_title }}</h1>
+    <p>{{ content.home_hero_body }}</p>
+    <div class="actions">
+      {% if current_user %}<a class="button" href="/daily">Open Daily</a>
+      {% elif google_enabled %}<a class="button" href="/auth/google/login">Sign in with Google</a>
+      {% else %}<a class="button" href="/contact">Contact us for early access</a>{% endif %}
+      <a class="button secondary" href="/about">About LeadProphet</a>
+    </div>
+  </div>
+</section>
+<section class="marketing-band">
+  <div class="section-intro"><span class="eyebrow">How it works</span><h2>One operating loop from market definition to follow-through.</h2></div>
+  <div class="process-grid">
+    <article><span>01</span><h3>Define campaigns and ICP</h3><p>Set firmographics, pains, personas, scoring rules, and a coordinated outreach cadence.</p></article>
+    <article><span>02</span><h3>Discover and analyze leads</h3><p>Build focused lists, inspect fit evidence, and prioritize accounts with explainable scores.</p></article>
+    <article><span>03</span><h3>Start relevant conversations</h3><p>Prepare channel-specific drafts, work daily tasks, and keep every outcome in the pipeline.</p></article>
+  </div>
+</section>
+<section class="marketing-band audience-band">
+  <div class="section-intro"><span class="eyebrow">Who it is for</span><h2>Small teams that need focus more than volume.</h2></div>
+  <div class="audience-list"><strong>Independent developers</strong><strong>Specialist agencies</strong><strong>SaaS founders</strong></div>
+</section>
+{% endblock %}

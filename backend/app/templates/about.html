@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="content-head"><span class="eyebrow">About LeadProphet</span><h1>Outbound should begin with judgment, not volume.</h1></section>
+<section class="content-grid">
+  <article><h2>Our Mission</h2><p>{{ content.about_mission }}</p></article>
+  <article><h2>What LeadProphet Does</h2><p>{{ content.about_product }}</p></article>
+</section>
+<section class="team-band"><div class="founder-mark" aria-hidden="true">LP</div><div><span class="eyebrow">Founder / Team</span><h2>Built close to the work</h2><p>{{ content.about_team }}</p></div></section>
+<section class="content-section"><h2>Roadmap</h2><ul class="roadmap-list">{% for item in roadmap %}<li>{{ item }}</li>{% endfor %}</ul></section>
+{% endblock %}

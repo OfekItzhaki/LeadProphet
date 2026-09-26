@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="login-view">
+  <div class="login-copy">
+    <span class="eyebrow">Private lead workspace</span>
+    <h1>Turn good prospects into relevant conversations.</h1>
+    <p>Campaign research, qualification, and outreach drafts in one focused workspace.</p>
+    <a class="google-button" href="/auth/google/login">
+      <span class="google-mark">G</span>
+      Sign in with Google
+    </a>
+  </div>
+</section>
+<script>
+  if (!sessionStorage.getItem('leadprophet_refresh_attempted')) {
+    sessionStorage.setItem('leadprophet_refresh_attempted', '1');
+    fetch('/auth/refresh', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'})
+      .then(response => {
+        if (response.ok) window.location.reload();
+      });
+  }
+</script>
+{% endblock %}

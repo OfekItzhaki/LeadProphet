@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">LeadProphet mark</title>
+  <path fill="#101828" d="M7 8h11v38h27l10 10H7z"/>
+  <path fill="#0F8A83" d="M23 8h16c11 0 18 6 18 16s-7 16-18 16H29v-9h10c5 0 8-2 8-7s-3-7-8-7H23z"/>
+  <path fill="#0F8A83" d="m27 22 18 7-18 7v-5l10-2-10-2z"/>
+  <circle cx="25" cy="22" r="2.5" fill="#E4572E"/>
+  <circle cx="25" cy="29" r="2.5" fill="#0F8A83"/>
+  <circle cx="25" cy="36" r="2.5" fill="#E4572E"/>
+</svg>

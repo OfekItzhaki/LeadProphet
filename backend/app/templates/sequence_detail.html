@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <div><h1>{{ sequence.name }}</h1><p>{{ sequence.description or sequence.campaign.name }}</p></div>
+  <a class="button secondary" href="/campaigns/{{ sequence.campaign_id }}">Back to campaign</a>
+</section>
+<section class="grid three metrics-row">
+  <div class="metric"><span>Leads attached</span><strong>{{ metrics.lead_count }}</strong></div>
+  <div class="metric"><span>Steps</span><strong>{{ sequence.steps|length }}</strong></div>
+  <div class="metric"><span>Largest step group</span><strong>{{ metrics.steps | map(attribute='lead_count') | max if metrics.steps else 0 }}</strong></div>
+</section>
+<section class="panel">
+  <h2>Step distribution</h2>
+  <table><thead><tr><th>Step</th><th>Channel</th><th>Offset</th><th>Leads</th></tr></thead><tbody>
+  {% for step in sequence.steps %}<tr><td>{{ step.order_index + 1 }}</td><td>{{ step.channel }}</td><td>{{ step.offset_days }} days</td><td><strong>{{ metrics.step_distribution.get(step.order_index|string, 0) }}</strong></td></tr>{% endfor %}
+  </tbody></table>
+</section>
+<section class="panel activity-panel">
+  <h2>Leads in sequence</h2>
+  <div class="list">{% for lead in leads %}<a class="row-link" href="/leads/{{ lead.id }}"><span><strong>{{ lead.business_name }}</strong><small>{{ lead.pipeline_stage.replace('_', ' ') }}</small></span><span class="pill">Step {{ lead.sequence_position + 1 }}</span></a>{% else %}<p class="empty">No leads attached yet.</p>{% endfor %}</div>
+</section>
+{% endblock %}

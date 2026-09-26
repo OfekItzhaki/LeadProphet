@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Daily</h1>
+    <p>{{ daily.date.strftime('%A, %B %d') }}</p>
+  </div>
+  <div class="actions">
+    <a class="button secondary" href="/campaigns/new">New campaign</a>
+    <form method="post" action="/campaigns/seed"><button type="submit">Seed default</button></form>
+  </div>
+</section>
+
+<section class="grid three">
+  <div class="panel">
+    <h2>Needs action</h2>
+    <div class="list">{% for lead in daily.action_leads %}<a class="row-link" href="/leads/{{ lead.id }}"><span><strong>{{ lead.business_name }}</strong><small>{{ lead.score }} score · {{ lead.pipeline_stage.replace('_', ' ') }}</small></span></a>{% else %}<p class="empty">No high-priority leads waiting for outreach.</p>{% endfor %}</div>
+  </div>
+  <div class="panel">
+    <h2>Tasks due</h2>
+    <div class="list">{% for item in daily.tasks %}<a class="row-link" href="/leads/{{ item.lead.id }}"><span><strong>{{ item.task.title }}</strong><small>{{ item.lead.business_name }} · {{ item.task.due_date.strftime('%H:%M') }}</small></span></a>{% else %}<p class="empty">No incomplete tasks due today.</p>{% endfor %}</div>
+  </div>
+  <div class="panel">
+    <h2>Sequence steps</h2>
+    <div class="list">{% for item in daily.sequence_steps %}<a class="row-link" href="/leads/{{ item.lead.id }}"><span><strong>{{ item.step.channel }} · {{ item.lead.business_name }}</strong><small>{{ item.sequence.name }} · {{ item.scheduled_at.strftime('%H:%M') }}</small></span></a>{% else %}<p class="empty">No cadence steps scheduled today.</p>{% endfor %}</div>
+  </div>
+</section>
+
+<section class="section-head dashboard-campaigns"><div><h2>Campaigns</h2></div><a class="button secondary" href="/campaigns/new">New campaign</a></section>
+
+<section class="grid three metrics-row">
+  <div class="metric"><span>Total campaigns</span><strong>{{ metrics.campaign_count }}</strong></div>
+  <div class="metric"><span>Total leads</span><strong>{{ metrics.total_leads }}</strong></div>
+  <div class="metric"><span>High priority</span><strong>{{ metrics.high_priority_leads }}</strong></div>
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>Active Campaigns</h2>
+    <div class="list">
+      {% for campaign in campaigns %}
+      <a class="row-link" href="/campaigns/{{ campaign.id }}">
+        <span>
+          <strong>{{ campaign.name }}</strong>
+          <small>{{ campaign.vertical }} · {{ campaign.region }}</small>
+          {% set cm = campaign_metrics.get(campaign.id) %}
+          {% if cm %}<small>{{ cm.total_leads }} leads · avg {{ cm.average_score if cm.average_score is not none else "-" }} · {{ cm.high_priority_leads }} high priority</small>{% endif %}
+        </span>
+        <span class="pill">{{ "active" if campaign.is_active else "paused" }}</span>
+      </a>
+      {% else %}
+      <p class="empty">No campaigns yet. Seed the default campaign to start.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Recent Leads</h2>
+    <div class="list">
+      {% for lead in leads %}
+      <a class="row-link" href="/leads/{{ lead.id }}">
+        <span>
+          <strong>{{ lead.business_name }}</strong>
+          <small>{{ lead.suggested_service_focus }} · {{ lead.status }}</small>
+        </span>
+        <span class="score">{{ lead.score if lead.score is not none else "new" }}</span>
+      </a>
+      {% else %}
+      <p class="empty">No leads yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="panel activity-panel">
+  <h2>Upcoming reminders</h2>
+  <div class="activity-list">
+    {% for reminder in reminders %}
+    <a class="activity-row" href="/leads/{{ reminder.lead_id }}">
+      <span class="event-dot"></span>
+      <span><strong>{{ reminder.title }}</strong><small>{{ reminder.business_name }} · {{ reminder.due_at.strftime('%Y-%m-%d %H:%M') }}</small></span>
+    </a>
+    {% else %}
+    <p class="empty">No tasks or follow-ups due in the next seven days.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel activity-panel">
+  <h2>Recent activity</h2>
+  <div class="activity-list">
+    {% for event in recent_events %}
+    <div class="activity-row">
+      <span class="event-dot"></span>
+      <span><strong>{{ event.event_type.replace('_', ' ') }}</strong><small>{{ event.created_at.strftime('%Y-%m-%d %H:%M') }}</small></span>
+    </div>
+    {% else %}
+    <p class="empty">No activity yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

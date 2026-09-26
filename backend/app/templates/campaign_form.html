@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>{{ "Edit campaign" if campaign else "New campaign" }}</h1>
+    <p>Configure a vertical without changing the pipeline.</p>
+  </div>
+</section>
+<form class="panel form campaign-form" method="post" action="{{ '/campaigns/' ~ campaign.id if campaign else '/campaigns' }}">
+  <div class="form-row">
+    <label>Name<input name="name" required value="{{ campaign.name if campaign else '' }}"></label>
+    <label>Vertical<input name="vertical" required placeholder="restaurants" value="{{ campaign.vertical if campaign else '' }}"></label>
+  </div>
+  <div class="form-row">
+    <label>Region<input name="region" required placeholder="Israel" value="{{ campaign.region if campaign else '' }}"></label>
+    <label>Languages<input name="languages" required placeholder="he, en" value="{{ campaign.languages | join(', ') if campaign else 'en' }}"></label>
+  </div>
+  <label>Services offered<input name="services_offered" required placeholder="website_rebuild, ai_automation" value="{{ campaign.services_offered | join(', ') if campaign else '' }}"></label>
+  <label>Ideal customer profile<textarea name="ai_icp_description" required rows="3">{{ campaign.ai_icp_description if campaign else '' }}</textarea></label>
+  <label>Value proposition<textarea name="ai_value_proposition" required rows="3">{{ campaign.ai_value_proposition if campaign else '' }}</textarea></label>
+  <label>Tone guidelines<textarea name="ai_tone_guidelines" required rows="2">{{ campaign.ai_tone_guidelines if campaign else 'Specific, concise, useful, and low-pressure.' }}</textarea></label>
+  <label>Search patterns, one per line<textarea name="search_patterns" rows="5">{% if campaign %}{% for pattern in campaign.search_patterns %}{{ pattern.get('query', '') }}{% if not loop.last %}
+{% endif %}{% endfor %}{% endif %}</textarea></label>
+  <label class="check-label"><input type="checkbox" name="is_active" value="true" {% if not campaign or campaign.is_active %}checked{% endif %}> Active campaign</label>
+  <div class="actions">
+    <button type="submit">{{ "Save changes" if campaign else "Create campaign" }}</button>
+    <a href="{{ '/campaigns/' ~ campaign.id if campaign else '/' }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

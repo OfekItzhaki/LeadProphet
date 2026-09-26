@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}LeadProphet 1.0.0{% endblock %}</title>
+    <meta name="description" content="LeadProphet brings campaign research, qualification, outreach drafts, and pipeline follow-through into one focused workspace.">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="/static/favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+    <link rel="stylesheet" href="/static/styles.css?v=20260926-1">
+  </head>
+  <body>
+    <header class="topbar public-nav">
+      <a class="brand" href="/" aria-label="LeadProphet home"><img src="/static/brand-logo-light.svg" alt="LeadProphet"></a>
+      <nav aria-label="Primary navigation">
+        <a class="{{ 'active' if active_page|default('') == 'home' else '' }}" href="/">Home</a>
+        <a class="{{ 'active' if active_page|default('') == 'about' else '' }}" href="/about">About</a>
+        <a class="{{ 'active' if active_page|default('') == 'contact' else '' }}" href="/contact">Contact Us</a>
+        <a class="{{ 'active' if active_page|default('') == 'legal' else '' }}" href="/legal">Legal</a>
+        {% if current_user %}<a href="/daily">Daily</a><span class="user-chip">{{ current_user.display_name }}</span><button class="link-button" type="button" onclick="logout()">Log out</button>{% endif %}
+      </nav>
+    </header>
+    <main class="shell">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="site-footer">
+      <div><a class="brand" href="/" aria-label="LeadProphet home"><img src="/static/brand-logo-light.svg" alt="LeadProphet"></a><p>Private beta for thoughtful outbound teams.</p></div>
+      <nav aria-label="Footer navigation"><a href="/">Home</a><a href="/about">About</a><a href="/contact">Contact</a><a href="/legal">Legal</a></nav>
+      <div><a href="mailto:{{ contact.email if contact is defined else 'hello@leadprophet.app' }}">{{ contact.email if contact is defined else 'hello@leadprophet.app' }}</a>{% if contact is defined %}<small>{{ contact.city }}</small>{% endif %}</div>
+    </footer>
+    <script>
+      {% if current_user %}sessionStorage.removeItem('leadprophet_refresh_attempted');{% endif %}
+      async function logout() {
+        await fetch('/auth/logout', {method: 'POST'});
+        sessionStorage.removeItem('leadprophet_refresh_attempted');
+        window.location.href = '/';
+      }
+    </script>
+  </body>
+</html>

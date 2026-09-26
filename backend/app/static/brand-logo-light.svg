@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 48" role="img" aria-labelledby="title">
+  <title id="title">LeadProphet</title>
+  <g transform="translate(2 2) scale(.6875)">
+    <path fill="#FFFFFF" d="M7 8h11v38h27l10 10H7z"/>
+    <path fill="#18B7AA" d="M23 8h16c11 0 18 6 18 16s-7 16-18 16H29v-9h10c5 0 8-2 8-7s-3-7-8-7H23z"/>
+    <path fill="#18B7AA" d="m27 22 18 7-18 7v-5l10-2-10-2z"/>
+    <circle cx="25" cy="22" r="2.5" fill="#FF6B45"/>
+    <circle cx="25" cy="29" r="2.5" fill="#18B7AA"/>
+    <circle cx="25" cy="36" r="2.5" fill="#FF6B45"/>
+  </g>
+  <text x="53" y="32" fill="#FFFFFF" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="750">LeadProphet</text>
+</svg>

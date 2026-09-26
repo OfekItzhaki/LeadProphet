@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not lead %}
+<p class="empty">Lead not found.</p>
+{% else %}
+<section class="page-head">
+  <div>
+    <h1>{{ lead.business_name }}</h1>
+    <p>{{ lead.website_url or "No website" }} · {{ lead.location_city or "" }} {{ lead.location_country or "" }}</p>
+  </div>
+  <div class="actions">
+    {% if not lead.duplicate_of_id %}
+    <form method="post" action="/leads/{{ lead.id }}/analyze">
+      <button type="submit">Run analysis</button>
+    </form>
+    {% endif %}
+    <form method="post" action="/leads/{{ lead.id }}/status">
+      <select name="status_value" aria-label="Lead status">
+        {% for status in ["new", "analysis_pending", "contact_draft_ready", "contacted", "responded", "closed_won", "closed_lost"] %}
+        <option value="{{ status }}" {% if lead.status == status %}selected{% endif %}>{{ status.replace('_', ' ') }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Update</button>
+    </form>
+    <form method="post" action="/leads/{{ lead.id }}/pipeline-stage">
+      <select name="pipeline_stage" aria-label="Pipeline stage">
+        {% for stage in pipeline_stages %}<option value="{{ stage }}" {% if lead.pipeline_stage == stage %}selected{% endif %}>{{ stage.replace('_', ' ') }}</option>{% endfor %}
+      </select>
+      <button type="submit">Move stage</button>
+    </form>
+  </div>
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>ICP fit</h2>
+    {% if lead.ai_analysis and lead.ai_analysis.get('icp_fit_score') is not none %}
+    <div class="metric-inline"><strong>{{ lead.ai_analysis.get('icp_fit_score') }}/100</strong></div>
+    <p>{{ lead.ai_analysis.get('icp_explanation') }}</p>
+    {% for signal, matched in lead.ai_analysis.get('icp_signals', {}).items() %}<span class="status-tag {{ 'match' if matched else 'miss' }}">{{ signal.replace('_', ' ') }}: {{ 'match' if matched else 'miss' }}</span>{% endfor %}
+    {% else %}<p class="empty">Run analysis to calculate ICP fit.</p>{% endif %}
+  </div>
+  <div class="panel">
+    <h2>Sequence</h2>
+    {% if attached_sequence %}
+    <strong>{{ attached_sequence.name }}</strong>
+    <p>Current step {{ lead.sequence_position + 1 }} of {{ attached_sequence.steps|length }}: {{ attached_sequence.steps[lead.sequence_position].channel }}</p>
+    {% if lead.sequence_position + 1 < attached_sequence.steps|length %}<form method="post" action="/leads/{{ lead.id }}/advance-sequence-ui"><button type="submit">Advance sequence</button></form>{% else %}<span class="pill">Complete</span>{% endif %}
+    {% else %}
+    <form class="form" method="post" action="/leads/{{ lead.id }}/attach-sequence-ui"><label>Sequence<select name="sequence_id" required>{% for sequence in available_sequences %}<option value="{{ sequence.id }}">{{ sequence.name }} · {{ sequence.steps|length }} steps</option>{% endfor %}</select></label><button type="submit" {% if not available_sequences %}disabled{% endif %}>Attach sequence</button></form>
+    {% if not available_sequences %}<p class="empty">Create an active campaign sequence first.</p>{% endif %}
+    {% endif %}
+  </div>
+</section>
+
+{% if lead.last_error %}
+<div class="alert">{{ lead.last_error }}</div>
+{% endif %}
+
+<section class="grid three">
+  <div class="metric">
+    <span>Score</span>
+    <strong>{{ lead.score if lead.score is not none else "-" }}</strong>
+  </div>
+  <div class="metric">
+    <span>Priority</span>
+    <strong>{{ lead.priority }}</strong>
+  </div>
+  <div class="metric">
+    <span>Pipeline stage</span>
+    <strong>{{ lead.pipeline_stage.replace('_', ' ') }}</strong>
+  </div>
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>Analysis</h2>
+    <dl>
+      <dt>Business summary</dt>
+      <dd>{{ lead.ai_business_summary or "Not analyzed yet." }}</dd>
+      <dt>Suggested service</dt>
+      <dd>{{ lead.suggested_service_focus }}</dd>
+      <dt>Score reason</dt>
+      <dd>{{ lead.score_reason or "-" }}</dd>
+      <dt>ICP fit</dt>
+      <dd>{{ lead.ai_analysis.get('target_customers', '-') if lead.ai_analysis else '-' }}</dd>
+      <dt>Proposed value</dt>
+      <dd>{{ lead.ai_proposed_value or '-' }}</dd>
+      <dt>Tech stack</dt>
+      <dd>{{ lead.tech_stack_detected }}</dd>
+      <dt>Enrichment</dt>
+      <dd>{{ lead.enrichment }}</dd>
+      {% if lead.duplicate_of_id %}<dt>Duplicate of</dt><dd><a href="/leads/{{ lead.duplicate_of_id }}">View canonical lead</a></dd>{% endif %}
+    </dl>
+  </div>
+
+  <div class="panel">
+    <h2>Pain Points</h2>
+    {% if lead.ai_problem_summary and lead.ai_problem_summary.get("pain_points") %}
+    <ul>
+      {% for point in lead.ai_problem_summary.get("pain_points") %}
+      <li>{{ point }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">Run analysis to populate campaign-aware pain points.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Outreach Drafts</h2>
+  <div class="message-grid">
+    {% for message in lead.outreach_messages %}
+    <article class="message">
+      <header>
+        <strong>{{ message.language }} · {{ message.channel }}</strong>
+        {% if message.subject %}<small>{{ message.subject }}</small>{% endif %}
+      </header>
+      <textarea readonly rows="9">{{ message.final_body or message.ai_draft_body }}</textarea>
+      <button type="button" class="secondary-button copy-draft">Copy draft</button>
+      {% if message.sent_at %}
+      <small>Sent via {{ message.sent_via or message.channel }} on {{ message.sent_at.strftime('%Y-%m-%d %H:%M') }}{% if message.follow_up_due_at %} · follow up {{ message.follow_up_due_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</small>
+      {% else %}
+      <form class="compact-form" method="post" action="/leads/{{ lead.id }}/outreach/{{ message.id }}/send">
+        <select name="sent_via"><option value="email">Email</option><option value="linkedin">LinkedIn</option><option value="whatsapp">WhatsApp</option><option value="phone">Phone</option><option value="other">Other</option></select>
+        <input type="datetime-local" name="follow_up_due_at" aria-label="Follow-up due date">
+        <button type="submit">Mark sent</button>
+      </form>
+      {% endif %}
+    </article>
+    {% else %}
+    <p class="empty">No outreach drafts yet.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>Tasks</h2>
+    <form class="form compact-form" method="post" action="/leads/{{ lead.id }}/tasks">
+      <input name="title" required placeholder="Task title">
+      <input name="description" placeholder="Details">
+      <input type="datetime-local" name="due_date" aria-label="Due date">
+      <button type="submit">Add task</button>
+    </form>
+    <div class="activity-list">
+      {% for task in lead.tasks|sort(attribute='created_at', reverse=true) %}
+      <div class="activity-row"><span><strong>{{ task.title }}</strong><small>{% if task.completed_at %}Completed{% elif task.due_date %}Due {{ task.due_date.strftime('%Y-%m-%d %H:%M') }}{% else %}No due date{% endif %}</small></span>{% if not task.completed_at %}<form method="post" action="/leads/{{ lead.id }}/tasks/{{ task.id }}/complete"><button type="submit" class="secondary-button">Complete</button></form>{% endif %}</div>
+      {% else %}<p class="empty">No tasks yet.</p>{% endfor %}
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Notes</h2>
+    <form class="form" method="post" action="/leads/{{ lead.id }}/notes"><textarea name="body" rows="3" required placeholder="Add context or call notes"></textarea><button type="submit">Add note</button></form>
+    <div class="activity-list">{% for note in lead.notes|sort(attribute='created_at', reverse=true) %}<div class="activity-row"><span>{{ note.body }}<small>{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</small></span></div>{% else %}<p class="empty">No notes yet.</p>{% endfor %}</div>
+  </div>
+</section>
+
+<section class="panel activity-panel">
+  <h2>Timeline</h2>
+  <div class="activity-list">{% for item in timeline %}<div class="activity-row"><span class="event-dot"></span><span><strong>{{ item.title }}</strong><small>{{ item.timestamp.strftime('%Y-%m-%d %H:%M') }}{% if item.details.get('body') %} · {{ item.details.body }}{% endif %}</small></span></div>{% else %}<p class="empty">No activity yet.</p>{% endfor %}</div>
+</section>
+<script>
+  document.querySelectorAll('.copy-draft').forEach(button => {
+    button.addEventListener('click', async () => {
+      const text = button.previousElementSibling.value;
+      await navigator.clipboard.writeText(text);
+      button.textContent = 'Copied';
+      setTimeout(() => { button.textContent = 'Copy draft'; }, 1200);
+    });
+  });
+</script>
+{% endif %}
+{% endblock %}

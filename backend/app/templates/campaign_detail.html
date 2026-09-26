@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not campaign %}
+<p class="empty">Campaign not found.</p>
+{% else %}
+<section class="page-head">
+  <div>
+    <h1>{{ campaign.name }} Cockpit</h1>
+    <p>{{ campaign.vertical }} · {{ campaign.region }} · {{ campaign.languages | join(", ") }}</p>
+  </div>
+  <div class="actions">
+    <a class="button secondary" href="/campaigns/{{ campaign.id }}/edit">Edit campaign</a>
+    <span class="pill">{{ "active" if campaign.is_active else "paused" }}</span>
+  </div>
+</section>
+
+<section class="grid three metrics-row">
+  <div class="metric"><span>Total leads</span><strong>{{ metrics.total_leads }}</strong></div>
+  <div class="metric"><span>Average score</span><strong>{{ metrics.average_score if metrics.average_score is not none else "-" }}</strong></div>
+  <div class="metric"><span>High priority</span><strong>{{ metrics.high_priority_leads }}</strong></div>
+</section>
+
+<section class="panel analytics-strip">
+  <div>
+    <h2>Lead status</h2>
+    <p>{% for name, count in metrics.leads_by_status.items() %}<span class="stat-inline"><strong>{{ count }}</strong> {{ name.replace('_', ' ') }}</span>{% endfor %}</p>
+  </div>
+  <div>
+    <h2>Score distribution</h2>
+    <p>{% for bucket, count in metrics.score_distribution.items() %}<span class="stat-inline"><strong>{{ count }}</strong> {{ bucket }}</span>{% endfor %}</p>
+  </div>
+</section>
+
+<section class="grid two">
+  <form class="panel form" method="post" action="/campaigns/{{ campaign.id }}/icp">
+    <h2>Ideal Customer Profile</h2>
+    <label>Company sizes<input name="company_sizes" value="{{ campaign.icp_firmographics.get('company_sizes', []) | join(', ') }}"></label>
+    <label>Industries<input name="industries" value="{{ campaign.icp_firmographics.get('industries', []) | join(', ') }}"></label>
+    <label>Regions<input name="regions" value="{{ campaign.icp_firmographics.get('regions', []) | join(', ') }}"></label>
+    <label>Technologies<input name="technologies" value="{{ campaign.icp_technographics.get('technologies', []) | join(', ') }}"></label>
+    <label>Pains<textarea name="pains" rows="3">{{ campaign.icp_pains | join(', ') }}</textarea></label>
+    <label>Buying triggers<textarea name="triggers" rows="2">{{ campaign.icp_triggers | join(', ') }}</textarea></label>
+    <label>Personas<input name="personas" value="{{ campaign.icp_personas | join(', ') }}"></label>
+    <button type="submit">Save ICP</button>
+  </form>
+  <div class="panel">
+    <h2>Outbound performance</h2>
+    <dl>
+      <dt>Leads in sequences</dt><dd>{{ outbound_metrics.leads_attached_to_sequences }}</dd>
+      <dt>Pipeline stages</dt><dd>{% for stage, count in outbound_metrics.pipeline_stages.items() %}{{ stage.replace('_', ' ') }}: {{ count }}{% if not loop.last %} · {% endif %}{% endfor %}</dd>
+      <dt>ICP fit</dt><dd>{% for bucket, count in outbound_metrics.icp_fit_distribution.items() %}{{ bucket }}: {{ count }}{% if not loop.last %} · {% endif %}{% endfor %}</dd>
+      <dt>Sent by channel</dt><dd>{% for channel, count in outbound_metrics.sent_by_channel.items() %}{{ channel }}: {{ count }}{% if not loop.last %} · {% endif %}{% else %}No sent outreach yet{% endfor %}</dd>
+    </dl>
+    {% for item in outbound_metrics.sequences %}
+    <div class="sequence-metric"><strong>{{ item.name }}</strong><small>{{ item.lead_count }} leads{% for step in item.steps %} · step {{ step.order_index + 1 }}: {{ step.lead_count }}{% endfor %}</small></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>Sequences</h2>
+    <div class="list">{% for sequence in sequences %}<a class="row-link" href="/sequences/{{ sequence.id }}/view"><span><strong>{{ sequence.name }}</strong><small>{{ sequence.steps|length }} steps · {{ sequence.description or '' }}</small></span><span class="pill">{{ 'active' if sequence.is_active else 'paused' }}</span></a>{% else %}<p class="empty">No sequences yet.</p>{% endfor %}</div>
+    <form class="form section-form" method="post" action="/campaigns/{{ campaign.id }}/sequences/ui">
+      <label>Name<input name="name" required></label>
+      <label>Description<input name="description"></label>
+      <label>Steps<textarea name="steps" rows="4" required placeholder="email, 0, Initial email&#10;linkedin, 2, Connect&#10;call, 5, Follow-up call"></textarea></label>
+      <button type="submit">Create sequence</button>
+    </form>
+  </div>
+  <div class="panel">
+    <h2>Message variants</h2>
+    <div class="list">{% for variant in variants %}<div class="row-link"><span><strong>{{ variant.variant_key.replace('_', ' ') }}</strong><small>{{ variant.channel }} · {{ variant.content }}</small></span><span><strong>{{ variant.times_used }}</strong><small>{{ variant.positive_outcomes }} positive</small></span></div>{% else %}<p class="empty">No variants yet.</p>{% endfor %}</div>
+    <form class="form section-form" method="post" action="/campaigns/{{ campaign.id }}/variants/ui">
+      <div class="form-row"><label>Channel<select name="channel"><option>email</option><option>linkedin</option><option>whatsapp</option></select></label><label>Element<select name="variant_key"><option value="subject_line">Subject line</option><option value="opening_line">Opening line</option><option value="cta">CTA</option></select></label></div>
+      <label>Content<textarea name="content" rows="3" required></textarea></label>
+      <button type="submit">Add variant</button>
+    </form>
+  </div>
+</section>
+
+<section class="grid two">
+  <form class="panel form" method="post" action="/leads">
+    <h2>Add Manual Lead</h2>
+    <input type="hidden" name="campaign_id" value="{{ campaign.id }}">
+    <label>Business name<input name="business_name" required></label>
+    <label>Website URL<input name="website_url" placeholder="https://example.com"></label>
+    <div class="form-row">
+      <label>City<input name="location_city"></label>
+      <label>Country<input name="location_country" value="{{ campaign.region }}"></label>
+    </div>
+    <label>Notes<textarea name="rough_notes" rows="4"></textarea></label>
+    <button type="submit">Create lead</button>
+  </form>
+
+  <div class="panel">
+    <h2>Campaign Context</h2>
+    <dl>
+      <dt>ICP</dt>
+      <dd>{{ campaign.ai_icp_description }}</dd>
+      <dt>Value proposition</dt>
+      <dd>{{ campaign.ai_value_proposition }}</dd>
+      <dt>Services</dt>
+      <dd>{{ campaign.services_offered | join(", ") }}</dd>
+    </dl>
+  </div>
+</section>
+
+<section class="grid two">
+  <form class="panel form" id="csv-import-form" enctype="multipart/form-data">
+    <h2>Import leads from CSV</h2>
+    <label>UTF-8 CSV file<input type="file" name="file" accept=".csv,text/csv" required></label>
+    <button type="submit">Import CSV</button>
+  </form>
+  <div class="panel form">
+    <h2>Search discovery</h2>
+    <p class="empty">Generate deterministic test prospects from this campaign's search patterns.</p>
+    <button type="button" id="search-discover">Discover leads</button>
+  </div>
+</section>
+<div id="ingestion-summary" class="alert" hidden></div>
+
+<section class="panel">
+  <div class="section-head">
+    <div>
+      <h2>Leads</h2>
+      <nav class="filter-tabs">
+        {% for value, label in [('all', 'All'), ('high_priority', 'High priority'), ('needs_outreach', 'Needs outreach'), ('needs_follow_up', 'Needs follow-up'), ('duplicates', 'Duplicates'), ('failed_analysis', 'Failed analysis')] %}
+        <a class="{{ 'active' if lead_filter == value else '' }}" href="?view={{ value }}">{{ label }}</a>
+        {% endfor %}
+      </nav>
+    </div>
+    <div class="actions">
+      <button type="button" class="secondary-button" id="analyze-new">Run analysis on new</button>
+      <button type="button" id="mark-contacted">Mark selected contacted</button>
+      <select id="bulk-sequence" aria-label="Sequence"><option value="">Attach sequence</option>{% for sequence in sequences if sequence.is_active %}<option value="{{ sequence.id }}">{{ sequence.name }}</option>{% endfor %}</select>
+      <button type="button" class="secondary-button" id="attach-sequence">Attach selected</button>
+    </div>
+  </div>
+  <form id="bulk-leads-form">
+  <table>
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="select-all" aria-label="Select all leads"></th>
+        <th>Business</th>
+        <th>Website</th>
+        <th>Service</th>
+        <th>Score</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Stage</th>
+        <th>Language</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lead in leads %}
+      <tr>
+        <td><input type="checkbox" name="lead_id" value="{{ lead.id }}" aria-label="Select {{ lead.business_name }}"></td>
+        <td><a href="/leads/{{ lead.id }}">{{ lead.business_name }}</a></td>
+        <td>{{ lead.website_url or "-" }}</td>
+        <td>{{ lead.suggested_service_focus }}</td>
+        <td><span class="score-tag {{ lead.priority }}">{{ lead.score if lead.score is not none else "-" }}</span></td>
+        <td><span class="priority-tag {{ lead.priority }}">{{ lead.priority }}</span></td>
+        <td><span class="status-tag status-{{ lead.status }}">{{ lead.status.replace('_', ' ') }}</span>{% if lead.duplicate_of_id %}<small>Duplicate</small>{% endif %}</td>
+        <td>{{ lead.pipeline_stage.replace('_', ' ') }}</td>
+        <td>{{ lead.detected_language }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" class="empty">No leads match this view.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </form>
+</section>
+{% endif %}
+<script>
+  const summary = document.getElementById('ingestion-summary');
+  function showIngestion(result) {
+    sessionStorage.setItem('leadprophet_ingestion', JSON.stringify(result));
+    window.location.reload();
+  }
+  const prior = sessionStorage.getItem('leadprophet_ingestion');
+  if (prior && summary) {
+    const result = JSON.parse(prior);
+    summary.textContent = `${result.created} created, ${result.skipped} skipped, ${result.queued_for_analysis} queued for analysis.`;
+    summary.hidden = false;
+    sessionStorage.removeItem('leadprophet_ingestion');
+  }
+  document.getElementById('csv-import-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const response = await fetch('/campaigns/{{ campaign.id }}/leads/import-csv', {method: 'POST', body: new FormData(event.target)});
+    const result = await response.json();
+    if (!response.ok) { summary.textContent = result.detail || 'Import failed'; summary.hidden = false; return; }
+    showIngestion(result);
+  });
+  document.getElementById('search-discover')?.addEventListener('click', async () => {
+    const response = await fetch('/campaigns/{{ campaign.id }}/leads/discover-from-search', {method: 'POST'});
+    const result = await response.json();
+    if (!response.ok) { summary.textContent = result.detail || 'Discovery failed'; summary.hidden = false; return; }
+    showIngestion(result);
+  });
+  document.getElementById('select-all')?.addEventListener('change', event => {
+    document.querySelectorAll('input[name="lead_id"]').forEach(input => { input.checked = event.target.checked; });
+  });
+  document.getElementById('analyze-new')?.addEventListener('click', async () => {
+    const response = await fetch('/campaigns/{{ campaign.id }}/leads/analyze-new', {method: 'POST'});
+    const result = await response.json();
+    if (!response.ok) { summary.textContent = result.detail || 'Analysis failed'; summary.hidden = false; return; }
+    showIngestion({created: result.processed.length, skipped: Object.keys(result.failed).length, queued_for_analysis: 0});
+  });
+  document.getElementById('mark-contacted')?.addEventListener('click', async () => {
+    const leadIds = [...document.querySelectorAll('input[name="lead_id"]:checked')].map(input => input.value);
+    if (!leadIds.length) { summary.textContent = 'Select at least one lead.'; summary.hidden = false; return; }
+    const response = await fetch('/campaigns/{{ campaign.id }}/leads/mark-contacted', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({lead_ids: leadIds})
+    });
+    const result = await response.json();
+    if (!response.ok) { summary.textContent = result.detail || 'Update failed'; summary.hidden = false; return; }
+    showIngestion({created: 0, skipped: 0, queued_for_analysis: 0});
+  });
+  document.getElementById('attach-sequence')?.addEventListener('click', async () => {
+    const leadIds = [...document.querySelectorAll('input[name="lead_id"]:checked')].map(input => input.value);
+    const sequenceId = document.getElementById('bulk-sequence').value;
+    if (!leadIds.length || !sequenceId) { summary.textContent = 'Select leads and a sequence.'; summary.hidden = false; return; }
+    const results = await Promise.all(leadIds.map(id => fetch(`/leads/${id}/attach-sequence/${sequenceId}`, {method: 'POST'})));
+    const failed = results.filter(response => !response.ok).length;
+    if (failed) { summary.textContent = `${failed} leads could not be attached.`; summary.hidden = false; return; }
+    window.location.reload();
+  });
+</script>
+{% endblock %}

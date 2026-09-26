@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="content-head">
+  <span class="eyebrow">Legal</span>
+  <h1>Terms &amp; Privacy</h1>
+  <p>The policies that govern your use of LeadProphet and explain how we handle information.</p>
+</section>
+<nav class="legal-tabs"><a href="#terms">Terms of Service</a><a href="#privacy">Privacy Policy</a></nav>
+<article class="legal-document" id="terms">
+  <header><h2>Terms of Service</h2><small>Effective {{ legal_documents.terms_of_service.updated_at.strftime('%B %d, %Y') }}</small></header>
+  {% for part in terms_sections %}{% if part.startswith('## ') %}<h3>{{ part[3:] }}</h3>{% else %}<p>{{ part }}</p>{% endif %}{% endfor %}
+</article>
+<article class="legal-document" id="privacy">
+  <header><h2>Privacy Policy</h2><small>Effective {{ legal_documents.privacy_policy.updated_at.strftime('%B %d, %Y') }}</small></header>
+  {% for part in privacy_sections %}{% if part.startswith('## ') %}<h3>{{ part[3:] }}</h3>{% else %}<p>{{ part }}</p>{% endif %}{% endfor %}
+</article>
+{% endblock %}
