@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="/static/styles.css?v=20260926-1">
   </head>
   <body>
+    {% if demo_mode|default(false) %}<div class="demo-banner" role="status">Local sandbox · deterministic data · not production</div>{% endif %}
     <header class="topbar public-nav">
       <a class="brand" href="/" aria-label="LeadProphet home"><img src="/static/brand-logo-light.svg" alt="LeadProphet"></a>
       <nav aria-label="Primary navigation">
@@ -18,7 +19,7 @@
         <a class="{{ 'active' if active_page|default('') == 'about' else '' }}" href="/about">About</a>
         <a class="{{ 'active' if active_page|default('') == 'contact' else '' }}" href="/contact">Contact Us</a>
         <a class="{{ 'active' if active_page|default('') == 'legal' else '' }}" href="/legal">Legal</a>
-        {% if current_user %}<a href="/daily">Daily</a><span class="user-chip">{{ current_user.display_name }}</span><button class="link-button" type="button" onclick="logout()">Log out</button>{% endif %}
+        {% if current_user %}<a href="/daily">Daily</a>{% if current_user.role == 'owner' %}<a href="/setup">Setup</a><a href="/settings">Settings</a>{% endif %}<span class="user-chip">{{ current_user.display_name }}</span><button class="link-button" type="button" onclick="logout()">Log out</button>{% endif %}
       </nav>
     </header>
     <main class="shell">

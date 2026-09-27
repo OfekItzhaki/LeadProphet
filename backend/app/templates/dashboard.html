@@ -10,6 +10,7 @@
     <form method="post" action="/campaigns/seed"><button type="submit">Seed default</button></form>
   </div>
 </section>
+{% if current_user.role == 'owner' and readiness %}<section class="panel next-step"><div><span class="eyebrow">WHAT SHOULD I DO NEXT?</span><h2>{% if readiness.status == 'Not ready' or not readiness.checks[-1].ok %}Create your first campaign{% elif not readiness.checks[2].ok %}Set the production secret before launch{% elif not readiness.checks[3].ok %}Complete your public profile{% else %}Review your readiness checklist{% endif %}</h2><p>{% for item in readiness.checks if not item.ok %}{{ item.guidance }}{% if not loop.last %} {% endif %}{% endfor %}</p></div><a class="button" href="{% if not readiness.checks[-1].ok %}/campaigns/wizard{% else %}/setup{% endif %}">Continue setup</a></section>{% endif %}
 
 <section class="grid three">
   <div class="panel">

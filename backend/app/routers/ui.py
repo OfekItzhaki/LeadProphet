@@ -20,6 +20,8 @@ from app.services.workflow import lead_timeline, upcoming_reminders
 from app.services.metrics import outbound_campaign_metrics, sequence_metrics, variant_metrics
 from app.services.sequences import advance_sequence, attach_sequence
 from app.services.daily import daily_view
+from app.config import settings
+from app.services.operator import readiness
 
 router = APIRouter(tags=["ui"])
 
@@ -53,6 +55,8 @@ def dashboard(request: Request, db: Session = Depends(get_db), current_user: Use
             "reminders": reminders,
             "daily": daily,
             "current_user": current_user,
+            "readiness": readiness(db, current_user.id) if current_user.role == "owner" else None,
+            "demo_mode": settings.app_env in {"local", "test", "demo"},
         },
     )
 

@@ -297,3 +297,19 @@ class ContactMessage(Base):
     message: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="new", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class OperatorSettings(Base):
+    __tablename__ = "operator_settings"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True)
+    product_name: Mapped[str] = mapped_column(String(120), default="LeadProphet")
+    support_email: Mapped[str] = mapped_column(String(320), default="")
+    phone: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    timezone: Mapped[str] = mapped_column(String(80), default="Asia/Jerusalem")
+    response_time: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    company_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    footer_text: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True, server_default=func.now(), onupdate=func.now())

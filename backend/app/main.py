@@ -15,7 +15,7 @@ from app.dependencies import get_current_user, get_optional_user
 from app.db import get_db
 from app.exceptions import PipelineError
 from app.models import User
-from app.routers import auth, campaigns, events, ingestion, jobs, leads, metrics, outreach, outbound, public, quality, ui, workflow
+from app.routers import auth, campaigns, events, ingestion, jobs, leads, metrics, operator, outreach, outbound, public, quality, ui, workflow
 from app.schemas import UserRead
 
 logger = logging.getLogger(__name__)
@@ -56,6 +56,7 @@ app.include_router(outreach.router)
 app.include_router(workflow.router)
 app.include_router(outbound.router)
 app.include_router(public.router)
+app.include_router(operator.router)
 app.include_router(ui.router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
