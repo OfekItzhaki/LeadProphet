@@ -76,7 +76,7 @@ def ensure_public_content(db: Session) -> tuple[dict[str, str], dict[str, LegalD
     for document_type, body in (("terms_of_service", TERMS_BODY), ("privacy_policy", PRIVACY_BODY)):
         item = db.query(LegalDocument).filter(LegalDocument.document_type == document_type).order_by(LegalDocument.updated_at.desc(), LegalDocument.version.desc()).first()
         if not item:
-            item = LegalDocument(document_type=document_type, version="1.0", body=body); db.add(item); changed = True
+            item = LegalDocument(document_type=document_type, version="1.0", body=body, is_published=True); db.add(item); changed = True
         elif item.version == "1.0-template":
             item.version = "1.0"
             item.body = item.body.replace(

@@ -6,7 +6,7 @@ _ephemeral_dev_secret = secrets.token_urlsafe(48)
 
 
 class Settings(BaseSettings):
-    app_version: str = "1.0.0"
+    app_version: str = "1.0.1"
     database_url: str = "sqlite:///./leadprophet.db"
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"

@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}LeadProphet 1.0.0{% endblock %}</title>
-    <meta name="description" content="LeadProphet brings campaign research, qualification, outreach drafts, and pipeline follow-through into one focused workspace.">
+    <title>{% block title %}{{ public_profile.product_name if public_profile is defined else 'LeadProphet' }} 1.0.1{% endblock %}</title>
+    <meta name="description" content="{{ public_profile.description if public_profile is defined and public_profile.description else 'LeadProphet brings campaign research, qualification, outreach drafts, and pipeline follow-through into one focused workspace.' }}">
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
     <link rel="alternate icon" href="/static/favicon.ico" sizes="any">
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
@@ -19,14 +19,14 @@
         <a class="{{ 'active' if active_page|default('') == 'about' else '' }}" href="/about">About</a>
         <a class="{{ 'active' if active_page|default('') == 'contact' else '' }}" href="/contact">Contact Us</a>
         <a class="{{ 'active' if active_page|default('') == 'legal' else '' }}" href="/legal">Legal</a>
-        {% if current_user %}<a href="/daily">Daily</a>{% if current_user.role == 'owner' %}<a href="/setup">Setup</a><a href="/settings">Settings</a>{% endif %}<span class="user-chip">{{ current_user.display_name }}</span><button class="link-button" type="button" onclick="logout()">Log out</button>{% endif %}
+        {% if current_user %}<a href="/daily">Daily</a>{% if current_user.role in ['owner', 'test'] %}<a href="/setup">Setup</a><a href="/settings">Settings</a>{% endif %}<span class="user-chip">{{ current_user.display_name }}</span><button class="link-button" type="button" onclick="logout()">Log out</button>{% endif %}
       </nav>
     </header>
     <main class="shell">
       {% block content %}{% endblock %}
     </main>
     <footer class="site-footer">
-      <div><a class="brand" href="/" aria-label="LeadProphet home"><img src="/static/brand-logo-light.svg" alt="LeadProphet"></a><p>Private beta for thoughtful outbound teams.</p></div>
+      <div><a class="brand" href="/" aria-label="LeadProphet home"><img src="/static/brand-logo-light.svg" alt="LeadProphet"></a><p>{{ public_profile.footer_text if public_profile is defined and public_profile.footer_text else 'Private beta for thoughtful outbound teams.' }}</p></div>
       <nav aria-label="Footer navigation"><a href="/">Home</a><a href="/about">About</a><a href="/contact">Contact</a><a href="/legal">Legal</a></nav>
       <div><a href="mailto:{{ contact.email if contact is defined else 'hello@leadprophet.app' }}">{{ contact.email if contact is defined else 'hello@leadprophet.app' }}</a>{% if contact is defined %}<small>{{ contact.city }}</small>{% endif %}</div>
     </footer>

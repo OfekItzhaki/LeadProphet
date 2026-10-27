@@ -1,13 +1,16 @@
-import json
+import re
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
 from app.dependencies import get_optional_user
-from app.models import Campaign, MessageVariant, OperatorSettings, Sequence, SequenceStep, User
+from app.models import Campaign, LegalDocument, MessageVariant, Sequence, SequenceStep, User
+from app.services.bundles import CampaignBundle, SiteContentBundle, export_campaign as build_campaign_bundle, export_site_content, import_campaign as create_imported_campaign, import_site_content
+from app.services.demo import reset_demo_data
 from app.services.operator import get_operator_settings, readiness
 from app.services.scoring import DEFAULT_SCORING_PROFILE
 
@@ -43,6 +46,12 @@ def settings_page(request: Request, db: Session = Depends(get_db), current_user:
 @router.post("/settings/profile")
 def update_profile(product_name: str = Form(...), support_email: str = Form(...), phone: str = Form(""), city: str = Form(""), timezone: str = Form(...), response_time: str = Form(""), company_description: str = Form(""), footer_text: str = Form(""), db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_user)):
     user = owner(current_user); profile = get_operator_settings(db, user.id)
+    if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", support_email.strip()): raise HTTPException(status_code=422, detail="Enter a valid support email")
+    try: ZoneInfo(timezone.strip())
+    except ZoneInfoNotFoundError as exc: raise HTTPException(status_code=422, detail="Enter a valid IANA timezone") from exc
+    values = {"product_name": product_name, "support_email": support_email, "phone": phone, "city": city, "timezone": timezone, "response_time": response_time, "company_description": company_description, "footer_text": footer_text}
+    limits = {"product_name": 120, "support_email": 320, "phone": 80, "city": 160, "timezone": 80, "response_time": 160, "company_description": 4000, "footer_text": 500}
+    if any(len(values[key]) > limit for key, limit in limits.items()): raise HTTPException(status_code=422, detail="One or more profile fields are too long")
     for key, value in locals().copy().items():
         if key in {"product_name", "support_email", "phone", "city", "timezone", "response_time", "company_description", "footer_text"}: setattr(profile, key, value.strip() or None)
     db.commit(); return RedirectResponse("/settings?saved=1", status_code=303)
@@ -72,48 +81,75 @@ def create_from_wizard(template: str = Form("israel-smb"), name: str = Form(""),
     db.commit(); return RedirectResponse(f"/campaigns/{campaign.id}?created=1", status_code=303)
 
 
-def bundle(campaign: Campaign) -> dict:
-    return {"schema_version": 1, "campaign": {key: getattr(campaign, key) for key in ("name", "vertical", "region", "languages", "services_offered", "search_patterns", "lead_sources_enabled", "ai_icp_description", "ai_value_proposition", "ai_tone_guidelines", "scoring_profile", "icp_firmographics", "icp_technographics", "icp_pains", "icp_triggers", "icp_personas", "campaign_rules")}, "sequences": [{"name": seq.name, "description": seq.description, "steps": [{"channel": step.channel, "offset_days": step.offset_days, "metadata": step.step_metadata} for step in seq.steps]} for seq in campaign.sequences], "variants": [{"channel": row.channel, "variant_key": row.variant_key, "content": row.content} for row in campaign_variants(campaign)]}
-
-
-def campaign_variants(campaign: Campaign):
-    db = Session.object_session(campaign)
-    return db.query(MessageVariant).filter(MessageVariant.campaign_id == campaign.id, MessageVariant.user_id == campaign.user_id).all()
-
-
 @router.get("/campaigns/{campaign_id}/export")
 def export_campaign(campaign_id: str, db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_user)):
-    user = owner(current_user); campaign = db.query(Campaign).options(selectinload(Campaign.sequences).selectinload(Sequence.steps)).filter(Campaign.id == campaign_id, Campaign.user_id == user.id).first()
-    if not campaign: raise HTTPException(status_code=404, detail="Campaign not found")
-    return JSONResponse(bundle(campaign), headers={"Content-Disposition": f'attachment; filename="{campaign.id}.json"'})
+    user = owner(current_user); bundle = build_campaign_bundle(db, user.id, campaign_id)
+    if not bundle: raise HTTPException(status_code=404, detail="Campaign not found")
+    return JSONResponse(bundle.model_dump(mode="json"), headers={"Content-Disposition": f'attachment; filename="campaign-{campaign_id}.json"'})
 
 
 @router.post("/campaigns/{campaign_id}/clone")
 def clone_campaign(campaign_id: str, db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_user)):
-    user = owner(current_user); source = db.query(Campaign).options(selectinload(Campaign.sequences).selectinload(Sequence.steps)).filter(Campaign.id == campaign_id, Campaign.user_id == user.id).first()
-    if not source: raise HTTPException(status_code=404, detail="Campaign not found")
-    return import_bundle(bundle(source), db, user, f"{source.name} (copy)")
+    user = owner(current_user); bundle = build_campaign_bundle(db, user.id, campaign_id)
+    if not bundle: raise HTTPException(status_code=404, detail="Campaign not found")
+    campaign = create_imported_campaign(db, user, bundle, " (copy)")
+    return RedirectResponse(f"/campaigns/{campaign.id}?cloned=1", status_code=303)
 
 
 @router.post("/campaigns/import")
 async def import_campaign(file: UploadFile = File(...), confirm: bool = Form(False), db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_user)):
-    user = owner(current_user); raw = await file.read()
+    user = owner(current_user); raw = await read_bundle(file)
+    bundle = validate_bundle(CampaignBundle, raw)
+    if not confirm: return JSONResponse({"preview": {"campaign": bundle.campaign.name, "sequences": len(bundle.sequences), "variants": len(bundle.variants)}, "requires_confirmation": True})
+    try: campaign = create_imported_campaign(db, user, bundle)
+    except ValueError as exc: raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return RedirectResponse(f"/campaigns/{campaign.id}?imported=1", status_code=303)
+
+
+@router.get("/settings/portability")
+def portability_page(request: Request, db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_user)):
+    user = owner(current_user)
+    return request.app.state.templates.TemplateResponse(request=request, name="portability.html", context={"current_user": user, "demo_mode": settings.app_env.lower() in {"local", "development", "test", "demo"}, "campaigns": db.query(Campaign).filter(Campaign.user_id == user.id).order_by(Campaign.name).all(), "legal_documents": db.query(LegalDocument).order_by(LegalDocument.document_type, LegalDocument.version.desc()).all()})
+
+
+@router.get("/settings/site-content/export")
+def export_content(db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_user)):
+    owner(current_user); bundle = export_site_content(db)
+    return JSONResponse(bundle.model_dump(mode="json"), headers={"Content-Disposition": 'attachment; filename="leadprophet-site-content.json"'})
+
+
+@router.post("/settings/site-content/import")
+async def import_content(file: UploadFile = File(...), confirm: bool = Form(False), db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_user)):
+    owner(current_user); bundle = validate_bundle(SiteContentBundle, await read_bundle(file))
+    if not confirm: return JSONResponse({"preview": {"cms": len(bundle.cms), "legal": len(bundle.legal)}, "requires_confirmation": True})
+    cms, legal = import_site_content(db, bundle)
+    return RedirectResponse(f"/settings/portability?content_imported=1&cms={cms}&legal={legal}", status_code=303)
+
+
+@router.post("/settings/demo/reset")
+def reset_demo(confirm: str = Form(""), db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_user)):
+    user = owner(current_user)
+    if settings.app_env.lower() not in {"local", "development", "test", "demo"}: raise HTTPException(status_code=404, detail="Not found")
+    if confirm != "RESET SANDBOX": raise HTTPException(status_code=422, detail="Type RESET SANDBOX to confirm")
+    campaign = reset_demo_data(db, user)
+    return RedirectResponse(f"/campaigns/{campaign.id}?reset=1", status_code=303)
+
+
+@router.post("/settings/legal/{document_id}/publish")
+def publish_legal(document_id: str, db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_user)):
+    owner(current_user); document = db.query(LegalDocument).filter(LegalDocument.id == document_id).first()
+    if not document: raise HTTPException(status_code=404, detail="Legal document not found")
+    db.query(LegalDocument).filter(LegalDocument.document_type == document.document_type).update({LegalDocument.is_published: False})
+    document.is_published = True; db.commit()
+    return RedirectResponse("/settings/portability?legal_published=1", status_code=303)
+
+
+async def read_bundle(file: UploadFile) -> bytes:
+    raw = await file.read()
     if len(raw) > 1_000_000: raise HTTPException(status_code=413, detail="Bundle exceeds 1 MB")
-    try: data = json.loads(raw)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc: raise HTTPException(status_code=422, detail="Invalid JSON bundle") from exc
-    if data.get("schema_version") != 1 or not isinstance(data.get("campaign"), dict): raise HTTPException(status_code=422, detail="Unsupported campaign bundle")
-    if not confirm: return JSONResponse({"preview": {"campaign": data["campaign"].get("name"), "sequences": len(data.get("sequences", [])), "variants": len(data.get("variants", []))}, "requires_confirmation": True})
-    return import_bundle(data, db, user)
+    return raw
 
 
-def import_bundle(data: dict, db: Session, user: User, override_name: str | None = None):
-    fields = {key for key in Campaign.__table__.columns.keys()} - {"id", "user_id", "created_at", "updated_at"}
-    payload = {key: value for key, value in data["campaign"].items() if key in fields}
-    payload["name"] = override_name or f"{payload.get('name', 'Imported campaign')} (imported)"
-    campaign = Campaign(user_id=user.id, **payload); db.add(campaign); db.flush()
-    sequence_map = []
-    for item in data.get("sequences", []):
-        seq = Sequence(user_id=user.id, campaign_id=campaign.id, name=item.get("name", "Imported sequence"), description=item.get("description")); db.add(seq); db.flush(); sequence_map.append(seq)
-        for index, step in enumerate(item.get("steps", [])): db.add(SequenceStep(sequence_id=seq.id, order_index=index, channel=step.get("channel", "task"), offset_days=int(step.get("offset_days", 0)), step_metadata=step.get("metadata", {})))
-    for item in data.get("variants", []): db.add(MessageVariant(user_id=user.id, campaign_id=campaign.id, sequence_id=sequence_map[0].id if sequence_map else None, channel=item.get("channel", "email"), variant_key=item.get("variant_key", "imported"), content=item.get("content", "")))
-    db.commit(); return RedirectResponse(f"/campaigns/{campaign.id}?imported=1", status_code=303)
+def validate_bundle(schema, raw: bytes):
+    try: return schema.model_validate_json(raw)
+    except Exception as exc: raise HTTPException(status_code=422, detail="Invalid or unsupported JSON bundle") from exc

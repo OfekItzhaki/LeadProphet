@@ -550,7 +550,7 @@ def test_public_pages_contact_legal_and_cms(v02_app) -> None:
     assert "Acceptable use" in terms.json()["body"]
     assert "Data we collect" in privacy.json()["body"]
     legal_body = "## Template update\n\n" + ("This remains a general legal template and is not legal advice. " * 3)
-    legal_update = client.put("/api/legal/terms_of_service", json={"version": "1.1-template", "body": legal_body}, headers=owner_headers)
+    legal_update = client.put("/api/legal/terms_of_service", json={"version": "1.1-template", "body": legal_body, "is_published": True}, headers=owner_headers)
     assert legal_update.status_code == 200
     legal_page = client.get("/legal").text
     assert "Template update" in legal_page

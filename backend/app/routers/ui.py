@@ -43,6 +43,14 @@ def dashboard(request: Request, db: Session = Depends(get_db), current_user: Use
     metrics = user_metrics(db, current_user.id)
     reminders = upcoming_reminders(db, current_user.id, 7)
     daily = daily_view(db, current_user.id)
+    report = readiness(db, current_user.id) if current_user.role in {"owner", "test"} else None
+    next_steps = {
+        "first_campaign": ("Create your first campaign", "/campaigns/wizard"), "first_leads": ("Add leads to your campaign", "/daily"),
+        "public_profile": ("Complete your public profile", "/settings"), "legal_published": ("Publish legal documents", "/settings/portability"),
+        "jwt_secret": ("Set the production secret before launch", "/setup"), "cms_customized": ("Review public-site copy", "/settings/portability"),
+        "google_oauth": ("Configure sign-in when credentials are ready", "/settings"), "email_delivery": ("Configure sending when a provider is ready", "/settings"),
+    }
+    next_step = next(({"id": key, "title": title, "href": href, "guidance": report["by_id"][key]["guidance"]} for key, (title, href) in next_steps.items() if report and not report["by_id"][key]["ok"]), None)
     return request.app.state.templates.TemplateResponse(
         request=request,
         name="dashboard.html",
@@ -55,7 +63,7 @@ def dashboard(request: Request, db: Session = Depends(get_db), current_user: Use
             "reminders": reminders,
             "daily": daily,
             "current_user": current_user,
-            "readiness": readiness(db, current_user.id) if current_user.role == "owner" else None,
+            "readiness": report, "next_step": next_step,
             "demo_mode": settings.app_env in {"local", "test", "demo"},
         },
     )

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1 - 2026-10-27
+
+- Completed the owner setup/readiness experience with stable named checks.
+- Added deployment-wide public profile propagation and validated settings.
+- Added versioned campaign and site-content portability with additive imports.
+- Added explicit legal publication state and local-only deterministic sandbox reset.
+- Added operator-focused backend and Playwright coverage.
+
 ## 1.0.0 - 2026-09-26
 
 - Added tenant-scoped campaigns, leads, scoring, outreach, sequences, tasks, reminders, and metrics.

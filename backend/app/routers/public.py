@@ -15,6 +15,7 @@ from app.providers.email import EmailMessage, get_email_provider
 from app.schemas import CmsContentRead, CmsContentUpdate, ContactMessageCreate, LegalDocumentRead, LegalDocumentUpdate
 from app.services.events import record_event
 from app.services.public_content import ensure_public_content, paragraphs
+from app.services.operator import public_profile
 
 router = APIRouter(tags=["public"])
 logger = logging.getLogger(__name__)
@@ -25,13 +26,13 @@ CONTACT_MAX_ATTEMPTS = 5
 
 def public_context(db: Session, current_user: User | None, active_page: str) -> dict:
     content, legal = ensure_public_content(db)
+    for document_type in ("terms_of_service", "privacy_policy"):
+        published = db.query(LegalDocument).filter(LegalDocument.document_type == document_type, LegalDocument.is_published.is_(True)).order_by(LegalDocument.updated_at.desc(), LegalDocument.version.desc()).first()
+        if published: legal[document_type] = published
+    profile = public_profile(db)
     return {
         "content": content, "legal_documents": legal, "current_user": current_user, "active_page": active_page,
-        "contact": {
-            "email": settings.public_contact_email, "phone": settings.public_contact_phone,
-            "city": settings.public_contact_city, "timezone": settings.public_contact_timezone,
-            "response_hours": settings.public_response_hours,
-        },
+        "contact": profile, "public_profile": profile,
         "google_enabled": bool(settings.google_client_id and settings.google_client_secret),
     }
 
@@ -147,8 +148,8 @@ def update_legal(document_type: str, payload: LegalDocumentUpdate, db: Session =
     require_owner(current_user)
     if document_type not in {"terms_of_service", "privacy_policy"}: raise HTTPException(status_code=422, detail="Unsupported legal document type")
     item = db.query(LegalDocument).filter(LegalDocument.document_type == document_type, LegalDocument.version == payload.version).first()
-    if item: item.body = payload.body
-    else: item = LegalDocument(document_type=document_type, version=payload.version, body=payload.body); db.add(item)
+    if item: item.body = payload.body; item.is_published = payload.is_published
+    else: item = LegalDocument(document_type=document_type, version=payload.version, body=payload.body, is_published=payload.is_published); db.add(item)
     record_event(db, "legal_document_updated", user=current_user, details={"document_type": document_type, "version": payload.version})
     db.commit(); db.refresh(item)
     return item

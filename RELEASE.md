@@ -1,6 +1,6 @@
-# LeadProphet 1.0 Release
+# LeadProphet 1.0.1 Release
 
-The application, API, and release version are `1.0.0`. Update `VERSION`, `Settings.app_version`, FastAPI metadata, and this document together for future releases.
+The application, API, and release version are `1.0.1`. Update `VERSION`, `Settings.app_version`, FastAPI metadata, and this document together for future releases.
 
 ## Checklist
 
@@ -11,7 +11,7 @@ The application, API, and release version are `1.0.0`. Update `VERSION`, `Settin
 - Run dependency and static security checks documented in `TESTING.md`.
 - Verify production environment values and back up the target database.
 - Build the container with `docker compose build` and run the production smoke test.
-- Tag the verified commit as `v1.0.0`.
+- Tag the verified commit as `v1.0.1`.
 
 ## Rollback
 

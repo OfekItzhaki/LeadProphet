@@ -50,6 +50,12 @@ uvicorn app.main:app --reload
 
 Open `http://127.0.0.1:8000`.
 
+## Owner Go-Live Workflow
+
+After sign-in, open `/setup` for named required, recommended, and optional readiness checks. `/settings` manages the deployment-wide public profile and reports environment, OAuth, email, database, version, and migration state without storing provider secrets. `/campaigns/wizard` creates a complete starter campaign with ICP, scoring, sequence, and variant defaults.
+
+Use `/settings/portability` to export or additively import campaign and site-content JSON bundles, publish legal versions, or reset deterministic sandbox data in local/test/demo environments. Imports never overwrite existing records and campaign records are always scoped to the current owner. See [OPERATIONS.md](OPERATIONS.md) for the operating checklist.
+
 ## Public Website And Content
 
 Public routes are available without authentication:

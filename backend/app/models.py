@@ -282,6 +282,7 @@ class LegalDocument(Base):
     document_type: Mapped[str] = mapped_column(String(40), index=True)
     version: Mapped[str] = mapped_column(String(40))
     body: Mapped[str] = mapped_column(Text)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
@@ -301,9 +302,10 @@ class ContactMessage(Base):
 
 class OperatorSettings(Base):
     __tablename__ = "operator_settings"
+    __table_args__ = (Index("ix_operator_settings_user_id", "user_id", unique=True),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     product_name: Mapped[str] = mapped_column(String(120), default="LeadProphet")
     support_email: Mapped[str] = mapped_column(String(320), default="")
     phone: Mapped[str | None] = mapped_column(String(80), nullable=True)

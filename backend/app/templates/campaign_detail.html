@@ -10,9 +10,12 @@
   </div>
   <div class="actions">
     <a class="button secondary" href="/campaigns/{{ campaign.id }}/edit">Edit campaign</a>
+    <a class="button secondary" href="/campaigns/{{ campaign.id }}/export">Export</a>
+    <form method="post" action="/campaigns/{{ campaign.id }}/clone" onsubmit="return confirm('Create a separate copy of this campaign?')"><button type="submit" class="secondary">Clone</button></form>
     <span class="pill">{{ "active" if campaign.is_active else "paused" }}</span>
   </div>
 </section>
+{% if request.query_params.get('created') %}<div class="notice success" role="status">Campaign and starter sequence created.</div>{% endif %}{% if request.query_params.get('imported') %}<div class="notice success" role="status">Campaign bundle imported.</div>{% endif %}{% if request.query_params.get('cloned') %}<div class="notice success" role="status">Campaign cloned.</div>{% endif %}{% if request.query_params.get('reset') %}<div class="notice success" role="status">Sandbox data reset.</div>{% endif %}
 
 <section class="grid three metrics-row">
   <div class="metric"><span>Total leads</span><strong>{{ metrics.total_leads }}</strong></div>
