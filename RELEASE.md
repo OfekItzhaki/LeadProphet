@@ -4,8 +4,8 @@ The application, API, and release version are `1.0.1`. Update `VERSION`, `Settin
 
 ## Checklist
 
-- Run `npm run test:all`.
-- Run `npm run test:e2e:flaky` and `npm run test:e2e:all-browsers`.
+- Run `python -m pytest -q` from `backend`, then `npm run test:e2e` from the repository root.
+- Run `npm run test:e2e:flaky` for repeated Chromium coverage when changing shared test state.
 - Run `npm run test:e2e:production`.
 - Run `python -m alembic upgrade head` and `python -m alembic check` from `backend`.
 - Run dependency and static security checks documented in `TESTING.md`.

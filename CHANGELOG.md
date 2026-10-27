@@ -7,6 +7,8 @@
 - Added versioned campaign and site-content portability with additive imports.
 - Added explicit legal publication state and local-only deterministic sandbox reset.
 - Added operator-focused backend and Playwright coverage.
+- Added SMTP contact notifications with local transport and failure-path tests.
+- Fixed fresh-runner CI migration order, browser installation, and platform-specific visual assertions.
 
 ## 1.0.0 - 2026-09-26
 

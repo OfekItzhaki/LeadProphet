@@ -81,7 +81,7 @@ Built-in slugs are `home_hero_title`, `home_hero_body`, `about_mission`, `about_
 
 Terms and privacy content is stored in `legal_documents`. Public retrieval uses `GET /api/legal/{document_type}`; owners publish a version with `PUT /api/legal/{document_type}` and a JSON body containing `version` and `body`. Supported document types are `terms_of_service` and `privacy_policy`. The supplied text is explicitly a general template, not legal advice.
 
-Contact submissions are validated and stored in `contact_messages` with `new` status, optional authenticated `user_id`, and a `contact_message_created` event. If `ADMIN_NOTIFICATION_EMAIL` is set, the configured `EmailProvider` receives a notification request; the default stub never sends externally.
+Contact submissions are validated and stored in `contact_messages` with `new` status, optional authenticated `user_id`, and a `contact_message_created` event. The default email stub never sends externally. Set `EMAIL_PROVIDER=smtp` and the SMTP fields described in [OPERATIONS.md](OPERATIONS.md) to send contact notifications. Campaign outreach and reply fetching remain manual.
 
 Configure public details in `.env`:
 
@@ -261,7 +261,7 @@ The signed-in home page is the Daily view. It prioritizes high-score leads witho
 
 Provider contracts live in `backend/app/providers`:
 
-- `EmailProvider.send()` and `fetch_replies()` default to a no-send stub.
+- `EmailProvider.send()` defaults to a no-send stub, with optional SMTP delivery for contact notifications. `fetch_replies()` remains a no-op.
 - `SearchProvider.search_businesses()` defaults to deterministic synthetic results.
 - `EnrichmentProvider.enrich_lead()` defaults to internal domain and business-size heuristics.
 

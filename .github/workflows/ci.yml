@@ -19,17 +19,16 @@ jobs:
         run: pip install -r backend/requirements-dev.txt
       - name: Run backend tests
         working-directory: backend
-        run: python -m alembic check && python -m pytest -q
+        run: python -m alembic upgrade head && python -m alembic check && python -m pytest -q
       - name: Install Playwright dependencies
-        run: npm ci && npx playwright install --with-deps chromium
-      - name: Run E2E and accessibility tests
+        run: npm ci && npx playwright install --with-deps chromium firefox webkit
+      - name: Run E2E, accessibility, and cross-browser smoke tests
         run: npm run test:e2e
-      - name: Run cross-browser smoke
-        run: npm run test:e2e:all-browsers
       - name: Run production rehearsal
         run: npm run test:e2e:production
       - name: Audit dependencies
         run: |
+          npm audit --audit-level=high
           python -m pip install pip-audit bandit
           python -m pip_audit -r backend/requirements.txt
           python -m bandit -q -r backend/app -x backend/app/static

@@ -17,3 +17,9 @@ Local, development, test, and demo environments show a `Local sandbox` banner. O
 Campaign detail pages support JSON export and cloning. Versioned imports validate before creation, are additive, preserve sequence/variant relationships, and scope records to the current user. Site bundles contain CMS copy and legal versions; imported drafts remain private until explicitly published.
 
 Google OAuth and email delivery remain environment-managed. Settings shows status but never stores provider secrets in the database. Without those providers, LeadProphet still supports campaigns, ICP/scoring, lead import and deterministic discovery, drafting, sequences, tasks, reminders, and manual sending.
+
+## Contact notification email
+
+The `stub` mode stores contact requests without sending email. For notifications, set `EMAIL_PROVIDER=smtp`, `EMAIL_FROM_ADDRESS`, `ADMIN_NOTIFICATION_EMAIL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, and `SMTP_PASSWORD` in the deployment secret store or ignored `.env`. Use `SMTP_SECURITY=starttls` for port 587 or `SMTP_SECURITY=ssl` for port 465. `SMTP_TIMEOUT_SECONDS` defaults to 10. The Settings page shows missing field names without exposing values. Verify a real notification after configuring the provider.
+
+SMTP sends contact notifications only. It does not send campaign outreach or fetch replies; those workflows remain manual. The app does not retry SMTP sends automatically, avoiding duplicate messages after ambiguous delivery failures.

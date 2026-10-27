@@ -13,6 +13,7 @@ from app.services.bundles import CampaignBundle, SiteContentBundle, export_campa
 from app.services.demo import reset_demo_data
 from app.services.operator import get_operator_settings, readiness
 from app.services.scoring import DEFAULT_SCORING_PROFILE
+from app.providers.email import email_delivery_ready, smtp_missing_settings
 
 router = APIRouter(tags=["operator"])
 
@@ -39,7 +40,8 @@ def readiness_api(db: Session = Depends(get_db), current_user: User | None = Dep
 @router.get("/settings")
 def settings_page(request: Request, db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_user)):
     user = owner(current_user); profile = get_operator_settings(db, user.id); report = readiness(db, user.id)
-    diagnostics = {"environment": settings.app_env, "app_version": settings.app_version, "api_version": settings.app_version, "database": settings.database_url.split(":", 1)[0], "oauth": bool(settings.google_client_id and settings.google_client_secret), "oauth_callback": settings.google_redirect_uri, "email_mode": settings.email_provider if settings.email_provider != "stub" else "stub/test mode"}
+    email_mode = "SMTP configured" if email_delivery_ready() else ("SMTP incomplete" if settings.email_provider == "smtp" else ("disabled" if settings.email_provider == "disabled" else "stub/test mode"))
+    diagnostics = {"environment": settings.app_env, "app_version": settings.app_version, "api_version": settings.app_version, "database": settings.database_url.split(":", 1)[0], "oauth": bool(settings.google_client_id and settings.google_client_secret), "oauth_callback": settings.google_redirect_uri, "email_mode": email_mode, "email_missing": smtp_missing_settings() if settings.email_provider == "smtp" else []}
     return request.app.state.templates.TemplateResponse(request=request, name="settings.html", context={"current_user": user, "profile": profile, "readiness": report, "diagnostics": diagnostics, "demo_mode": settings.app_env in {"local", "test", "demo"}})
 
 

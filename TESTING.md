@@ -32,7 +32,7 @@ From the repository root:
 
 ```bash
 npm install
-npx playwright install chromium
+npx playwright install chromium firefox webkit
 npm run test:e2e
 ```
 
@@ -40,9 +40,9 @@ Useful modes are `npm run test:e2e:headed`, `npm run test:e2e:ui`, and `npm run 
 
 Playwright starts FastAPI on `127.0.0.1:8005` with `APP_ENV=test` and an isolated `backend/leadprophet-e2e.db`. The web-server command resets and seeds that database before each test run. The `POST /auth/dev/test-login` helper issues normal JWT cookies only in local, development, or test environments; it is unavailable in production. The E2E seed includes a primary and second user for tenant-isolation checks, deterministic providers, campaigns, leads, sequences, variants, tasks, notes, and public CMS content.
 
-Coverage includes public navigation and contact validation/persistence, authenticated daily view, campaign and lead creation, CSV import, deterministic discovery and analysis, sequence advancement, tasks, notes, metrics, cross-tenant access, axe WCAG A/AA scans, and desktop/mobile screenshots. CI runs backend pytest and Chromium E2E, then uploads the Playwright HTML report and failure artifacts.
+Coverage includes public navigation and contact validation/persistence, authenticated daily view, campaign and lead creation, CSV import, deterministic discovery and analysis, sequence advancement, tasks, notes, metrics, cross-tenant access, axe WCAG A/AA scans, and desktop/mobile screenshots. CI migrates a fresh SQLite database, runs backend pytest and Chromium E2E with Firefox/WebKit smoke, then uploads the Playwright HTML report and failure artifacts. Pixel baselines are pinned to Windows Chromium and are not compared on Linux CI.
 
-Real Google OAuth credentials are not required for this suite. Configure Google OAuth only to test the external provider flow manually. Configure an email provider only to test real contact notifications; the suite uses the no-send stub.
+Real Google OAuth credentials are not required for this suite. Configure Google OAuth only to test the external provider flow manually. Fake SMTP tests verify the transport without sending mail; real contact notification delivery still requires your SMTP credentials and sender-domain setup.
 
 ## Release and security checks
 

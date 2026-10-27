@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import engine
 from app.models import Campaign, CmsContent, Lead, LegalDocument, OperatorSettings
+from app.providers.email import email_delivery_ready
 from app.services.public_content import DEFAULT_CONTENT
 
 
@@ -47,7 +48,7 @@ def readiness(db: Session, user_id: str) -> dict:
         make_check("first_campaign", "First campaign", db.query(Campaign).filter(Campaign.user_id == user_id).count() > 0, "required", "Create a campaign with the guided wizard."),
         make_check("first_leads", "Campaign leads", db.query(Lead).filter(Lead.user_id == user_id).count() > 0, "warning", "Import a CSV or run discovery."),
         make_check("google_oauth", "Google OAuth", bool(settings.google_client_id and settings.google_client_secret), "optional", "Add client ID, secret, and callback URL."),
-        make_check("email_delivery", "Email delivery", settings.email_provider not in {"stub", "disabled"} and bool(settings.email_api_key), "optional", "Configure a supported sending provider; manual sending remains available."),
+        make_check("email_delivery", "Contact notification SMTP configured", email_delivery_ready(), "optional", "Configure SMTP host, credentials, sender address, and an admin notification recipient; manual outreach remains available."),
         make_check("cms_customized", "Customized public content", any(content.get(key) != value for key, value in DEFAULT_CONTENT.items()), "warning", "Review the default home and about copy."),
     ]
     required_ok = all(item["ok"] for item in checks if item["category"] == "required")

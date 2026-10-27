@@ -1,5 +1,7 @@
 import secrets
+from typing import Literal
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ephemeral_dev_secret = secrets.token_urlsafe(48)
@@ -27,6 +29,12 @@ class Settings(BaseSettings):
     email_provider: str = "stub"
     email_api_key: str | None = None
     email_from_address: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_security: Literal["starttls", "ssl"] = "starttls"
+    smtp_timeout_seconds: int = Field(default=10, ge=1, le=60)
     enrichment_provider: str = "internal"
     enrichment_api_key: str | None = None
     public_contact_email: str = "hello@leadprophet.app"
